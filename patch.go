@@ -42,7 +42,6 @@ func (patch Patch) String() string {
 
 					//fmt.Fprintf(hunk, "%s%s\n", patch[j].Action, patch[j].Content)
 					h.lines = append(h.lines, patch.lines[j])
-
 					h.countA++
 					h.countB++
 				}

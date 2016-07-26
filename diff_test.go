@@ -194,7 +194,6 @@ important new additions
 to this document.`
 
 	callDiffF(atext, btext, "\n")
-
 }
 
 func TestFiles(t *testing.T) {

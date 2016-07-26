@@ -153,6 +153,7 @@ func Files(pathA, pathB string) (patch Patch, err error) {
 	}
 
 	right, err := ioutil.ReadFile(pathB)
+
 	if err != nil {
 		return
 	}
