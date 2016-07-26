@@ -1,6 +1,9 @@
 package diff
 
-import "strings"
+import (
+	"io/ioutil"
+	"strings"
+)
 
 const (
 	DiffSame   = " "
@@ -131,5 +134,21 @@ func calc(linesA, linesB []string) (result []Line) {
 		result = append(result, Line{Side: Right, Action: DiffInsert, Content: linesB[k]})
 	}
 
+	return
+}
+
+// Files returns difference between two files
+func Files(pathA, pathB string) (patch Patch, err error) {
+	a, err := ioutil.ReadFile(pathA)
+	if err != nil {
+		return
+	}
+
+	b, err := ioutil.ReadFile(pathB)
+	if err != nil {
+		return
+	}
+
+	patch = String(string(a), string(b), "\n")
 	return
 }

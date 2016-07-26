@@ -192,3 +192,7 @@ to this document.`
 	callDiffF(atext, btext, "\n")
 
 }
+
+func TestFiles(t *testing.T) {
+	fmt.Println(Files("a.txt", "b.txt"))
+}
