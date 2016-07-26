@@ -17,20 +17,19 @@ const (
 	Right = "B"
 )
 
+// Interface provides interface used in this package for comparing two collections
+type Interface interface {
+	Compare(a, b int) int
+	LenA() int
+	LenB() int
+}
+
 // Line represents change
 type Line struct {
 	IndexLeft  int
 	IndexRight int
 	Action     string
-	Content    string
 	Side       string
-}
-
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
 }
 
 // String splits both sides of string and creates diff result comparing both side lines
@@ -38,16 +37,17 @@ func String(left, right, sep string) (result []Line) {
 	a := strings.Split(left, sep)
 	b := strings.Split(right, sep)
 
-	return calc(a, b)
+	return calc(stringInterface{a, b})
 }
 
 // calc returns all changes lines, from to change collection
-func calc(linesA, linesB []string) (result []Line) {
+func calc(input Interface) (result []Line) {
 	i, j := 0, 0
 
-	for i < len(linesA) && j < len(linesB) {
-		if linesA[i] == linesB[j] {
-			result = append(result, Line{IndexLeft: i, IndexRight: j, Action: DiffSame, Content: linesA[i]})
+	for i < input.LenA() && j < input.LenB() {
+
+		if input.Compare(i, j) == 0 {
+			result = append(result, Line{IndexLeft: i, IndexRight: j, Action: DiffSame})
 			i++
 			j++
 			continue
@@ -62,19 +62,19 @@ func calc(linesA, linesB []string) (result []Line) {
 			x := i + n // top-right corner of search
 
 			// move down if x is out of old line count
-			if x >= len(linesA) {
-				y += x + 1 - len(linesA)
-				x = len(linesA) - 1
+			if x >= input.LenA() {
+				y += x + 1 - input.LenA()
+				x = input.LenA() - 1
 			}
 
 			count := 0
-			for x >= i && y < len(linesB) {
+			for x >= i && y < input.LenB() {
 				count++
-				if linesA[x] == linesB[y] {
+				if input.Compare(x, y) == 0 {
 					found = true
 
 					// while searching for next matching line, we choose matching pair farther away from last line
-					m := min(len(linesA)-x, len(linesB)-y)
+					m := min(input.LenA()-x, input.LenB()-y)
 					if m >= d {
 						atx, aty = x, y
 						d = m
@@ -85,13 +85,13 @@ func calc(linesA, linesB []string) (result []Line) {
 			}
 
 			if count == 0 {
-				for i < len(linesA) {
-					result = append(result, Line{Side: Left, Action: DiffDelete, Content: linesA[i]})
+				for i < input.LenA() {
+					result = append(result, Line{Side: Left, Action: DiffDelete, IndexLeft: i})
 					i++
 				}
 
-				for j < len(linesB) {
-					result = append(result, Line{Side: Right, Action: DiffInsert, Content: linesB[j]})
+				for j < input.LenB() {
+					result = append(result, Line{Side: Right, Action: DiffInsert, IndexRight: j})
 					j++
 				}
 				break
@@ -100,8 +100,8 @@ func calc(linesA, linesB []string) (result []Line) {
 			if found || count == 1 {
 
 				if !found && count == 1 {
-					x = len(linesA)
-					y = len(linesB)
+					x = input.LenA()
+					y = input.LenB()
 				}
 
 				if found {
@@ -109,14 +109,14 @@ func calc(linesA, linesB []string) (result []Line) {
 				}
 
 				for k := i; k < x; k++ { // removed lines from left
-					result = append(result, Line{Side: Left, Action: DiffDelete, Content: linesA[k]})
+					result = append(result, Line{Side: Left, Action: DiffDelete, IndexLeft: k})
 				}
 				for k := j; k < y; k++ { // added lines to right
-					result = append(result, Line{Side: Right, Action: DiffInsert, Content: linesB[k]})
+					result = append(result, Line{Side: Right, Action: DiffInsert, IndexRight: k})
 				}
 
 				if found { // add line that was found same in both lists
-					result = append(result, Line{IndexLeft: x, IndexRight: y, Action: DiffSame, Content: linesA[x]})
+					result = append(result, Line{IndexLeft: x, IndexRight: y, Action: DiffSame})
 				}
 
 				i = x + 1
@@ -126,12 +126,12 @@ func calc(linesA, linesB []string) (result []Line) {
 		}
 	}
 
-	for k := i; k < len(linesA); k++ {
-		result = append(result, Line{Side: Left, Action: DiffDelete, Content: linesA[k]})
+	for k := i; k < input.LenA(); k++ {
+		result = append(result, Line{Side: Left, Action: DiffDelete, IndexLeft: k})
 	}
 
-	for k := j; k < len(linesB); k++ {
-		result = append(result, Line{Side: Right, Action: DiffInsert, Content: linesB[k]})
+	for k := j; k < input.LenB(); k++ {
+		result = append(result, Line{Side: Right, Action: DiffInsert, IndexRight: k})
 	}
 
 	return
@@ -139,16 +139,20 @@ func calc(linesA, linesB []string) (result []Line) {
 
 // Files returns difference between two files
 func Files(pathA, pathB string) (patch Patch, err error) {
-	a, err := ioutil.ReadFile(pathA)
+	left, err := ioutil.ReadFile(pathA)
 	if err != nil {
 		return
 	}
 
-	b, err := ioutil.ReadFile(pathB)
+	right, err := ioutil.ReadFile(pathB)
+
 	if err != nil {
 		return
 	}
 
-	patch = String(string(a), string(b), "\n")
+	a := strings.Split(string(left), "\n")
+	b := strings.Split(string(right), "\n")
+
+	patch = Patch{a, b, calc(stringInterface{a, b})}
 	return
 }

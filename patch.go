@@ -11,7 +11,11 @@ type hunk struct {
 	lines            []Line
 }
 
-type Patch []Line
+// Patch is handler for creating patch file
+type Patch struct {
+	a, b  []string
+	lines []Line
+}
 
 func (patch Patch) String() string {
 
@@ -23,7 +27,7 @@ func (patch Patch) String() string {
 	afterContext := 0
 	lastAdded := -1
 
-	for i, p := range patch {
+	for i, p := range patch.lines {
 		switch p.Action {
 		case DiffDelete, DiffInsert:
 			afterContext = 3
@@ -32,13 +36,12 @@ func (patch Patch) String() string {
 				before := max(0, max(i-3, lastAdded))
 				for j := before; j < i; j++ {
 					if len(h.lines) == 0 { // start of hunk
-						h.offsetA = patch[j].IndexLeft + 1
-						h.offsetB = patch[j].IndexRight + 1
+						h.offsetA = patch.lines[j].IndexLeft + 1
+						h.offsetB = patch.lines[j].IndexRight + 1
 					}
 
 					//fmt.Fprintf(hunk, "%s%s\n", patch[j].Action, patch[j].Content)
-					h.lines = append(h.lines, patch[j])
-
+					h.lines = append(h.lines, patch.lines[j])
 					h.countA++
 					h.countB++
 				}
@@ -65,7 +68,14 @@ func (patch Patch) String() string {
 				if afterContext == 0 { // hunk done
 					fmt.Fprintf(buf, "@@ -%d,%d +%d,%d @@\n", h.offsetA, h.countA, h.offsetB, h.countB)
 					for _, l := range h.lines {
-						fmt.Fprintf(buf, "%s%s\n", l.Action, l.Content)
+						switch l.Side {
+						case Left:
+							fmt.Fprintf(buf, "%s%s\n", l.Action, patch.a[l.IndexLeft])
+						case Right:
+							fmt.Fprintf(buf, "%s%s\n", l.Action, patch.b[l.IndexRight])
+						default:
+							fmt.Fprintf(buf, "%s%s\n", l.Action, patch.a[l.IndexLeft])
+						}
 					}
 					h.lines = make([]Line, 0, 50)
 					h.countA, h.countB = 0, 0
@@ -77,15 +87,15 @@ func (patch Patch) String() string {
 
 	fmt.Fprintf(buf, "@@ -%d,%d +%d,%d @@\n", h.offsetA, h.countA, h.offsetB, h.countB)
 	for _, l := range h.lines {
-		fmt.Fprintf(buf, "%s%s\n", l.Action, l.Content)
+		switch l.Side {
+		case Left:
+			fmt.Fprintf(buf, "%s%s\n", l.Action, patch.a[l.IndexLeft])
+		case Right:
+			fmt.Fprintf(buf, "%s%s\n", l.Action, patch.b[l.IndexRight])
+		default:
+			fmt.Fprintf(buf, "%s%s\n", l.Action, patch.a[l.IndexLeft])
+		}
 	}
 
 	return buf.String()
-}
-
-func max(a, b int) int {
-	if a >= b {
-		return a
-	}
-	return b
 }

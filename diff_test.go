@@ -13,10 +13,14 @@ func callDiff(aText, bText, sep string) {
 	//fmt.Println(aText)
 	//fmt.Println(bText)
 
-	result := calc(a, b)
+	result := calc(stringInterface{a, b})
 
 	for _, r := range result {
-		fmt.Println(r.Action, r.Side, r.Content)
+		if r.Side == Right {
+			fmt.Println(r.Action, r.Side, b[r.IndexRight])
+		} else {
+			fmt.Println(r.Action, r.Side, a[r.IndexLeft])
+		}
 	}
 }
 
@@ -27,9 +31,9 @@ func callDiffF(aText, bText, sep string) {
 	//fmt.Println(aText)
 	//fmt.Println(bText)
 
-	result := calc(a, b)
+	result := calc(stringInterface{a, b})
 
-	fmt.Println(Patch(result))
+	fmt.Println(Patch{a, b, result})
 }
 
 func TestQuality(t *testing.T) {
@@ -190,9 +194,8 @@ important new additions
 to this document.`
 
 	callDiffF(atext, btext, "\n")
-
 }
 
 func TestFiles(t *testing.T) {
-	fmt.Println(Files("a.txt", "b.txt"))
+	//	fmt.Println(Files("a.txt", "b.txt"))
 }
