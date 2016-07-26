@@ -40,6 +40,14 @@ func String(left, right, sep string) (result []Line) {
 	return calc(stringInterface{a, b})
 }
 
+// StringPatch splits both sides of string and creates diff result patch
+func StringPatch(left, right, sep string) Patch {
+	a := strings.Split(left, sep)
+	b := strings.Split(right, sep)
+
+	return Patch{a, b, calc(stringInterface{a, b})}
+}
+
 // calc returns all changes lines, from to change collection
 func calc(input Interface) (result []Line) {
 	i, j := 0, 0
